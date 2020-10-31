@@ -1,0 +1,6 @@
+/.vscode
+/__pycache__
+/weight_0.pth
+/weight_12500.pth
+/weight_25000.pth
+/weight_end.pth
