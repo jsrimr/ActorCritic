@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-ENV_NAME = 'PongNoFrameskip-v4'
+ENV_NAME = 'Pendulum-v0'
 # Breakout-v0 대신 BreakoutNoFrameskip-v4을 사용
 # v0은 2~4개 프레임을 자동으로 생략하므로 이 기능이 없는 버전을 사용한다
 # 참고 URL https://becominghuman.ai/lets-build-an-atari-ai-part-1-dqn-df57e8ff3b26
