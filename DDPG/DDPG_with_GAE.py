@@ -14,6 +14,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 NUM_PROCESS = 16
 
+
 class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -153,8 +154,8 @@ def ddpg_update(batch_size,
     # done = torch.FloatTensor(np.float32(done)).unsqueeze(1).to(device)
     done = torch.FloatTensor(np.float32(done)).to(device)
 
-    policy_loss = value_net(state, policy_net(state))
-    policy_loss = -policy_loss.mean()
+    # policy_loss = value_net(state, policy_net(state))
+    # policy_loss = -policy_loss.mean()
 
     next_action = target_policy_net(next_state)
     target_value = target_value_net(next_state, next_action.detach())
@@ -163,6 +164,18 @@ def ddpg_update(batch_size,
 
     value = value_net(state, action)
     value_loss = value_criterion(value, expected_value.detach())
+
+    returns = []
+    delta = expected_value - value
+    advantage = 0.0
+    lmbda = .95
+    for delta_t in reversed(delta):
+        advantage = gamma * lmbda * advantage + delta_t
+        returns.append([advantage.mean()])
+
+    returns.reverse()
+    policy_loss = torch.tensor(returns, requires_grad=True)
+    policy_loss = -policy_loss.mean()
 
     policy_optimizer.zero_grad()
     policy_loss.backward()
@@ -229,8 +242,6 @@ max_steps = 500
 frame_idx = 0
 rewards = []
 batch_size = 128
-
-
 
 while frame_idx < max_frames:
     state = envs.reset()
