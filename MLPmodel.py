@@ -1,6 +1,7 @@
 import numpy as np
 
 from hyperparameters import *
+from utils import compute_gae
 
 
 class ValueNetwork(nn.Module):
@@ -75,20 +76,23 @@ class DDPG:
         done = torch.FloatTensor(np.float32(done)).unsqueeze(-1).to(device)
         # done = torch.FloatTensor(np.float32(done)).to(device)
 
-        policy_loss = self.value_net(state, self.policy_net(state))
-        policy_loss = -policy_loss.mean()
+        # policy_loss = self.value_net(state, self.policy_net(state))
+        values = self.value_net(state, self.policy_net(state))
 
         next_action = self.target_policy_net(next_state)
         target_value = self.target_value_net(next_state, next_action.detach())
         expected_value = reward + (1.0 - done) * self.gamma * target_value
+        #
+        policy_loss = compute_gae(target_value, reward, done, values)
+        policy_loss = -policy_loss.mean()
         # expected_value = torch.clamp(expected_value, min_value, max_value)
+        self.policy_optimizer.zero_grad()
+        policy_loss.backward()
+        self.policy_optimizer.step()
 
         value = self.value_net(state, action)
         value_loss = nn.MSELoss()(value, expected_value.detach())
 
-        self.policy_optimizer.zero_grad()
-        policy_loss.backward()
-        self.policy_optimizer.step()
 
         self.value_optimizer.zero_grad()
         value_loss.backward()

@@ -1,13 +1,14 @@
 import random
+
 import numpy as np
 
 from hyperparameters import *
+
 
 class RolloutStorage(object):
     '''Advantage 학습에 사용하는 메모리 클래스'''
 
     def __init__(self, num_steps, num_processes, obs_shape):
-
         self.observations = torch.zeros(
             num_steps + 1, num_processes, *obs_shape).to(device)
         # *로 리스트의 요소를 풀어낸다(unpack)
@@ -45,7 +46,7 @@ class RolloutStorage(object):
         self.returns[-1] = next_value
         for ad_step in reversed(range(self.rewards.size(0))):
             self.returns[ad_step] = self.returns[ad_step + 1] * \
-                GAMMA * self.masks[ad_step + 1] + self.rewards[ad_step]
+                                    GAMMA * self.masks[ad_step + 1] + self.rewards[ad_step]
 
 
 class ReplayBuffer:
@@ -68,7 +69,9 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
+
 import gym
+
 
 class NormalizedActions(gym.ActionWrapper):
 
@@ -118,4 +121,19 @@ class OUNoise(object):
         self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(1.0, t / self.decay_period)
         return np.clip(action + ou_state, self.low, self.high)
 
+
 # https://github.com/vitchyr/rlkit/blob/master/rlkit/exploration_strategies/ou_strategy.py
+
+def compute_gae(next_value, rewards, masks, values, gamma=0.99, lmbda=0.95):
+    # values = torch.cat([values, next_value], dim=-1)
+
+    returns = []
+    td_target = rewards + gamma * next_value * masks
+    delta = td_target - values
+    advantage = 0.0
+    for delta_t in reversed(delta):
+        advantage = gamma * lmbda * advantage + delta_t
+        returns.append([advantage.mean()])
+
+    returns.reverse()
+    return torch.tensor(returns, requires_grad = True)
